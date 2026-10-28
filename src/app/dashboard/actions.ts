@@ -51,3 +51,21 @@ export async function redeemReward(customerId: string): Promise<FormState> {
   revalidatePath("/dashboard", "layout");
   return {};
 }
+
+// ---- Demo data -----------------------------------------------------------
+
+export async function loadDemoData(): Promise<FormState> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("seed_demo_data");
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard", "layout");
+  return {};
+}
+
+export async function removeDemoData(): Promise<FormState> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("remove_demo_data");
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard", "layout");
+  return {};
+}
