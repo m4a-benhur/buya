@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto max-w-3xl px-5 py-6">
@@ -7,6 +9,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <button className="btn-ghost">Log out</button>
         </form>
       </header>
+      <nav className="mt-4 flex gap-2 print:hidden" aria-label="Dashboard">
+        <Link href="/dashboard" className="btn-ghost">Overview</Link>
+        <Link href="/dashboard/customers" className="btn-ghost">Customers</Link>
+      </nav>
       <div className="mt-6">{children}</div>
     </div>
   );

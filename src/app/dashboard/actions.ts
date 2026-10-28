@@ -33,3 +33,21 @@ export async function createProgramme(_prev: FormState, formData: FormData): Pro
   revalidatePath("/dashboard");
   redirect("/dashboard");
 }
+
+// ---- Owner actions: stamps and rewards ----------------------------------
+
+export async function awardStamp(customerId: string): Promise<FormState> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("award_stamp", { p_customer_id: customerId });
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard", "layout");
+  return {};
+}
+
+export async function redeemReward(customerId: string): Promise<FormState> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("redeem_reward", { p_customer_id: customerId });
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard", "layout");
+  return {};
+}
