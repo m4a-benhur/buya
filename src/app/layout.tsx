@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description: "Turn occasional customers into regulars with simple stamp cards.",
 };
 
-export const viewport: Viewport = { width: "device-width", initialScale: 1 };
+export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#0F8B6D" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
