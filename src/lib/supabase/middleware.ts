@@ -24,7 +24,10 @@ export async function updateSession(request: NextRequest) {
 
   if (!user && request.nextUrl.pathname.startsWith("/dashboard")) {
     const url = request.nextUrl.clone();
+    const target = request.nextUrl.pathname;
     url.pathname = "/login";
+    url.search = "";
+    url.searchParams.set("next", target); // return here after login (e.g. after scanning a customer's QR)
     return NextResponse.redirect(url);
   }
   return response;

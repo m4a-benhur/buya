@@ -4,8 +4,10 @@ import { useState, useTransition } from "react";
 import { awardStamp, redeemReward } from "../actions";
 
 export default function CustomerActions({
-  customerId, name, balance, required, reward,
-}: { customerId: string; name: string; balance: number; required: number; reward: string }) {
+  customerId, name, balance, required, reward, askConfirm = true,
+}: {
+  customerId: string; name: string; balance: number; required: number; reward: string; askConfirm?: boolean;
+}) {
   const [pending, start] = useTransition();
   const [error, setError] = useState("");
   const full = balance >= required;
@@ -15,7 +17,7 @@ export default function CustomerActions({
       kind === "award"
         ? `Confirm a paid visit for ${name}?`
         : `Redeem “${reward}” for ${name}? Their card will reset.`;
-    if (!window.confirm(message)) return;
+    if (askConfirm && !window.confirm(message)) return;
     setError("");
     start(async () => {
       const res = await (kind === "award" ? awardStamp(customerId) : redeemReward(customerId));

@@ -27,7 +27,8 @@ export default function LoginPage() {
     if (mode === "signup" && !data.session) {
       return setError("Account created. Check your email to confirm it, then log in.");
     }
-    router.push("/dashboard");
+    const next = new URLSearchParams(window.location.search).get("next");
+    router.push(next && next.startsWith("/dashboard") && !next.startsWith("//") ? next : "/dashboard");
     router.refresh();
   }
 
