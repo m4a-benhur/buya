@@ -6,7 +6,7 @@ Customers never install an app: they scan a QR code, join, and bookmark their ca
 **Stack:** Next.js (App Router) · TypeScript · Tailwind · Supabase (Postgres + Auth) · qrcode.react
 
 ## Setup
-1. Create a Supabase project. In **SQL Editor** run, in order: `supabase/migrations/0001_init.sql`, then `0002_app_functions.sql`.
+1. Create a Supabase project. In **SQL Editor** run, in order: `supabase/migrations/0001_init.sql`, then `0002_app_functions.sql`, then `0003_weekly_visits.sql`.
 2. Supabase → Authentication → Providers → Email → turn **off** "Confirm email" (demo only).
 3. `cp .env.example .env.local` and set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` (the publishable key works here).
 4. `npm install && npm run dev` → http://localhost:3000 (Node 20.9+).
@@ -33,3 +33,11 @@ Customers never install an app: they scan a QR code, join, and bookmark their ca
 
 ## Deploy
 Push to GitHub, import to Vercel, add the two env vars. QR codes use whatever domain the dashboard is opened on.
+
+## Extra features
+- **Retention funnel + weekly visits chart** on the Overview.
+- **Scan-to-award:** each customer card shows a QR for staff. Scanning it opens that customer's page in the dashboard (login required) with an Award stamp button. Only the logged-in owner can award.
+- **Languages:** the join page and card work in English, Afrikaans and isiXhosa (cookie-based switcher). Have a native speaker review the translations before real use.
+- **Almost there** list and filters, **stamp history** per customer (every stamp and redemption with its timestamp).
+- **Remind on WhatsApp:** opens the owner's own WhatsApp with a drafted message. Buya sends nothing.
+- **Add to home screen:** each card has its own web app manifest, so a pinned card opens that customer's card.

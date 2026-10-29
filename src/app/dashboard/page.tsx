@@ -5,9 +5,15 @@ import { daysSince, plural } from "@/lib/format";
 import CreateProgrammeForm from "./create-programme-form";
 import DemoDataCard from "./demo-data-card";
 import JoinQr from "@/components/join-qr";
+import Funnel from "@/components/funnel";
+import WeeklyChart from "@/components/weekly-chart";
+import WhatsAppButton from "@/components/whatsapp-button";
 
 type Stats = { enrolled: number; returned_30d: number; redeemed: number; inactive: number };
-type Row = { id: string; name: string; phone: string; balance: number; last_visit: string | null; joined_at: string; is_demo: boolean };
+type Row = {
+  id: string; name: string; phone: string; balance: number; last_visit: string | null;
+  joined_at: string; is_demo: boolean; total_stamps: number; total_redemptions: number;
+};
 
 function StatCard({ label, value, caption }: { label: string; value: number; caption: string }) {
   return (
@@ -27,12 +33,28 @@ export default async function DashboardPage() {
   const { data: statsData } = await supabase.rpc("dashboard_stats").single<Stats>();
   const stats: Stats = statsData ?? { enrolled: 0, returned_30d: 0, redeemed: 0, inactive: 0 };
 
+  const { data: weeklyData, error: weeklyError } = await supabase.rpc("weekly_visits", { p_weeks: 8 });
+  if (weeklyError) console.error("weekly_visits failed (did you run 0003_weekly_visits.sql?):", weeklyError.message);
+  const weeks = (weeklyData ?? []) as { week_start: string; visits: number }[];
+
   const { data: rows } = await supabase
     .from("customer_stats")
-    .select("id, name, phone, balance, last_visit, joined_at, is_demo")
+    .select("id, name, phone, balance, last_visit, joined_at, is_demo, total_stamps, total_redemptions")
     .eq("business_id", business.id);
   const customers = (rows ?? []) as Row[];
   const hasDemo = customers.some((c) => c.is_demo);
+  const req = business.stamps_required;
+  const reward = business.reward_text.toLowerCase();
+  const first = (name: string) => name.split(" ")[0];
+
+  const funnel = [
+    { label: "Joined", value: customers.length },
+    { label: "Had a first visit", value: customers.filter((c) => c.total_stamps >= 1).length },
+    { label: "Came back", value: customers.filter((c) => c.total_stamps >= 2).length },
+    { label: "Earned a reward", value: customers.filter((c) => c.total_redemptions >= 1 || c.balance >= req).length },
+  ];
+
+  const almost = req >= 2 ? customers.filter((c) => c.balance === req - 1) : [];
 
   // Inactive = no stamp for 45+ days (or joined 45+ days ago and never stamped)
   const inactive = customers
@@ -41,10 +63,15 @@ export default async function DashboardPage() {
     .sort((a, b) => b.days - a.days);
 
   function suggestion(c: { balance: number }) {
-    const left = business!.stamps_required - c.balance;
+    const left = req - c.balance;
     return c.balance > 0 && left > 0
-      ? `Only ${plural(left, "stamp")} from a ${business!.reward_text.toLowerCase()}. Send a reminder.`
+      ? `Only ${plural(left, "stamp")} from a ${reward}. Send a reminder.`
       : "Send a reminder or offer a low-cost incentive.";
+  }
+  function inactiveMessage(c: { name: string; balance: number }) {
+    return c.balance > 0
+      ? `Hi ${first(c.name)}, it's ${business!.name}. We miss you! You have ${c.balance} of ${req} stamps toward a ${reward}. Come see us soon.`
+      : `Hi ${first(c.name)}, it's ${business!.name}. We miss you! Your loyalty card is waiting. Come see us soon.`;
   }
 
   return (
@@ -55,8 +82,8 @@ export default async function DashboardPage() {
           {hasDemo && <span className="rounded-full bg-accent-soft px-3 py-1 text-sm font-medium text-accent-dark">Simulated data for demonstration</span>}
         </div>
         <p className="mt-2 text-lg">
-          Collect <span className="font-semibold text-accent">{business.stamps_required} stamps</span>, get a{" "}
-          <span className="font-semibold text-accent">{business.reward_text.toLowerCase()}</span>.
+          Collect <span className="font-semibold text-accent">{req} stamps</span>, get a{" "}
+          <span className="font-semibold text-accent">{reward}</span>.
         </p>
       </section>
 
@@ -68,8 +95,50 @@ export default async function DashboardPage() {
       </section>
 
       <section className="card">
+        <h2 className="text-xl font-bold">Retention funnel</h2>
+        <p className="mt-1 text-sm text-ink/60">How many customers reach each step.</p>
+        <Funnel stages={funnel} />
+      </section>
+
+      {weeks.length > 0 && (
+        <section className="card">
+          <h2 className="text-xl font-bold">Visits per week</h2>
+          <p className="mt-1 text-sm text-ink/60">Stamps awarded over the last 8 weeks.</p>
+          <WeeklyChart weeks={weeks} />
+        </section>
+      )}
+
+      <section className="card">
+        <h2 className="text-xl font-bold">Almost there</h2>
+        <p className="mt-1 text-sm text-ink/60">One stamp away from a {reward}. Give them a nudge.</p>
+        {almost.length === 0 ? (
+          <p className="mt-4 text-ink/70">Nobody is one stamp away right now.</p>
+        ) : (
+          <ul className="mt-4 divide-y divide-black/10">
+            {almost.slice(0, 6).map((c) => (
+              <li key={c.id} className="py-3">
+                <div className="flex items-baseline justify-between gap-3">
+                  <Link href={`/dashboard/customers/${c.id}`} className="font-semibold underline-offset-4 hover:underline">{c.name}</Link>
+                  <p className="shrink-0 text-sm font-semibold text-accent-dark">{req - 1}/{req} stamps</p>
+                </div>
+                <WhatsAppButton phone={c.phone}
+                  message={`Hi ${first(c.name)}, you're only 1 stamp away from your ${reward} at ${business.name}. See you soon!`} />
+              </li>
+            ))}
+          </ul>
+        )}
+        {almost.length > 6 && (
+          <Link href="/dashboard/customers?filter=almost" className="mt-3 inline-block text-sm font-semibold text-accent">
+            See all {almost.length}
+          </Link>
+        )}
+      </section>
+
+      <section className="card">
         <h2 className="text-xl font-bold">Inactive customers</h2>
-        <p className="mt-1 text-sm text-ink/60">Suggestions only. Buya does not send messages.</p>
+        <p className="mt-1 text-sm text-ink/60">
+          Suggestions only. The WhatsApp button opens your own WhatsApp with a drafted message. Buya sends nothing.
+        </p>
         {inactive.length === 0 ? (
           <p className="mt-4 text-ink/70">No inactive customers right now. Nice work.</p>
         ) : (
@@ -77,13 +146,14 @@ export default async function DashboardPage() {
             {inactive.slice(0, 8).map((c) => (
               <li key={c.id} className="py-3">
                 <div className="flex items-baseline justify-between gap-3">
-                  <p className="font-semibold">{c.name}</p>
+                  <Link href={`/dashboard/customers/${c.id}`} className="font-semibold underline-offset-4 hover:underline">{c.name}</Link>
                   <p className="shrink-0 text-sm text-ink/60">
                     {c.last_visit ? `${c.days} days ago` : `Joined ${c.days} days ago, no visits`}
                   </p>
                 </div>
                 <p className="text-sm text-ink/60">{c.phone}</p>
                 <p className="mt-1 text-sm font-medium text-accent-dark">{suggestion(c)}</p>
+                <WhatsAppButton phone={c.phone} message={inactiveMessage(c)} />
               </li>
             ))}
           </ul>
