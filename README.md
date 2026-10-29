@@ -1,5 +1,9 @@
 # Buya
 
+**Live prototype:** [https://buya-one.vercel.app](buya-one.vercel.app)
+
+Sign up with any email, then press **Load demo data** on the Overview.
+
 Simple stamp-card loyalty for small businesses. Demo MVP using **FreshCut Barbershop** (Cape Town, prices in R).
 Customers never install an app: they scan a QR code, join, and bookmark their card.
 
