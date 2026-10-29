@@ -12,3 +12,10 @@ export function daysSince(iso: string): number {
 export function plural(n: number, word: string): string {
   return `${n} ${word}${n === 1 ? "" : "s"}`;
 }
+
+export function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString("en-ZA", {
+    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+    timeZone: "Africa/Johannesburg",
+  });
+}
